@@ -1,21 +1,21 @@
 package org.infinispan.tutorial.embedded;
 
-import org.infinispan.distribution.group.Grouper;
-import org.infinispan.protostream.annotations.ProtoFactory;
-import org.infinispan.protostream.annotations.ProtoField;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Set;
+
+import org.infinispan.commons.marshall.AdvancedExternalizer;
+import org.infinispan.commons.util.Util;
 
 public class LocationWeather {
 
-   @ProtoField(number = 1, defaultValue = "0.0")
    final float temperature;
 
-   @ProtoField(number = 2)
    final String conditions;
 
-   @ProtoField(number = 3)
    final String country;
 
-   @ProtoFactory
    public LocationWeather(float temperature, String conditions, String country) {
       this.temperature = temperature;
       this.conditions = conditions;
@@ -27,16 +27,31 @@ public class LocationWeather {
       return String.format("Temperature: %.1f° C, Conditions: %s", temperature, conditions);
    }
 
-   public static class LocationGrouper implements Grouper<String> {
+
+   public static class LocationWeatherAdvancedExternalizer implements AdvancedExternalizer<LocationWeather> {
 
       @Override
-      public String computeGroup(String key, String group) {
-         return key.split(",")[1].trim();
+      public void writeObject(ObjectOutput output, LocationWeather locationWeather)
+            throws IOException {
+         output.writeObject(locationWeather.temperature);
+         output.writeObject(locationWeather.conditions);
+         output.writeObject(locationWeather.country);
       }
 
       @Override
-      public Class<String> getKeyType() {
-         return String.class;
+      public LocationWeather readObject(ObjectInput input)
+            throws IOException, ClassNotFoundException {
+         return new LocationWeather(input.readFloat(), (String) input.readObject(), (String) input.readObject());
+      }
+
+      @Override
+      public Set<Class<? extends LocationWeather>> getTypeClasses() {
+         return Util.asSet(LocationWeather.class);
+      }
+
+      @Override
+      public Integer getId() {
+         return 2345;
       }
    }
 
